@@ -1,3 +1,5 @@
 __pycache__
+test_app.py
 *.txt
 *.csv
+*.json
