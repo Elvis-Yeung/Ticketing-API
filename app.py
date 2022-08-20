@@ -91,6 +91,6 @@ def get_one(idstr):
     """
     with open("database.json", "r") as f:
         db: dict = json.load(f)
-    ticket = db.get(idstr)
+    ticket: dict | None = db.get(idstr)
 
     return (ticket, 200) if ticket else ("Ticket not found", 200)
