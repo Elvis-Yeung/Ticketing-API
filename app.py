@@ -42,7 +42,7 @@ def save_ticket():
         "assignee": "assignee",
         "role": "role"
     }
-    When making a new ticket, leave the "uuid" field as an empty string. 
+    When making a new ticket, leave the "uuid" field as an empty string.
 
     """
 
