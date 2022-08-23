@@ -23,7 +23,7 @@ def create_table():
 def insert_entry(ticket: dict):
     with sqlite3.connect("TicketStorage.db") as con:
         con.cursor().execute(
-            "INSERT INTO tickets VALUES (?, ?, ?, ?, ?);", tuple(ticket.values())
+            "INSERT INTO tickets VALUES (?, ?, ?, ?, ?)", tuple(ticket.values())
         )
 
 
@@ -33,8 +33,8 @@ def edit_entry(ticket: dict, uuid: str):
             con.cursor().execute(
                 f"""
                 UPDATE tickets
-                SET '{k}' = '{v}'
-                WHERE uuid = '{uuid}';"""
+                SET %s = ?
+                WHERE uuid = ?""" % (k,), (v, uuid)
             )
 
 
@@ -42,7 +42,7 @@ def get_entry(uuid: str) -> tuple:
     with sqlite3.connect("TicketStorage.db") as con:
         return (
             con.cursor()
-            .execute("SELECT * FROM tickets WHERE uuid = ?;", (uuid,))
+            .execute("SELECT * FROM tickets WHERE uuid = ?", (uuid,))
             .fetchone()
         )
 
