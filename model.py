@@ -1,37 +1,36 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from uuid import uuid4
-import json
 
 
 @dataclass
 class Ticket:
-    """
-    A class to store ticket attributes.
-    :param id: A UUID string
-    :type id: str
-    :param tags: A list of ticket tags
-    :type tags: list[str]
-    :param contents: The contents of the ticket(as a JSON)
-    :type contents: dict[str, str]
-    :param last_modified_at: The time at which the ticket was last modified(as a string)
-    :type last_modified_at: str
-    :param time_of_creation: The time at which the ticket was created(as a string)
-    :type time_of_creation: str
-    """
-
     id: str
     tags: list[str]
     contents: dict[str, str]
-    last_modified_at: str
-    time_of_creation: str
+    last_modified: str
+    created_at: str
 
     def as_json(self):
         return {
-            self.id: {
-                "tags": self.tags,
-                "contents": self.contents,
-                "last_modified_at": str(datetime.utcnow()),
-                "time_of_creation": self.time_of_creation,
-            }
+            "uuid": self.id,
+            "tags": self.tags,
+            "contents": self.contents,
+            "last_modified": self.last_modified,
+            "created_at": self.created_at,
         }
+
+
+sample_entry = {
+    "uuid": "198ed5dd-fbc7-42e6-b857-1ad898afsfb3",
+    "tags": ["URGENT", "NTR"],
+    "contents": {
+        "Title": "Easiest task ever",
+        "Description": "Do stuff",
+        "Required operations": ["operation1", "bottomtext"],
+        "Repository": "N/A",
+        "Difficulty": "Dark Souls No Hit",
+        "Assignee": "No one",
+        "Role": "Critical",
+    },
+    "last_modified": "2022-08-23 10:04:09.104992",
+    "created_at": "2022-08-20 10:04:09.104992",
+}

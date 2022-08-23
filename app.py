@@ -1,96 +1,117 @@
 from flask import Flask, request
+from model import Ticket
 from datetime import datetime
-from uuid import uuid4
+from db_manip import *
 import json
+
 
 app = Flask(__name__)
 
 
+init_db()
+
+
 @app.route("/")
-def show_command_list():
+def show_endpoints_list():
     """
-    Displays the list of commands as static html.
+    Displays the list of endpoints(as static html).
     """
+
     return (
-        "<p>Commands</p>"
-        + "<p>Get one ticket : /get<idnum></p>"
+        "<p>Endpooints</p>"
         + "<p>List all tickets: /getall</p>"
-        + "<p>Add/edit a ticket: /save</p>"
+        + "<p>List all tickets in order: /getall/ordered</p>"
+        + "<p>Get specific ticket: /get<uuid></p>"
+        + "<p>Add a ticket: /add</p>"
+        + "<p>Edit a ticket: /edit<uuid></p>"
     )
 
 
-@app.route("/getall", methods=["GET"])
+@app.get("/getall")
 def get_all_tickets():
     """
-    Returns a JSON containing all tickets as JSONs.
+    Returns a list of all ticket entries.
     """
-    with open("database.json", "r") as f:
-        db: dict = json.load(f)
-    return (db, 200)
+
+    all_entries = []
+    for row in get_all_entries():
+        entry = strings_to_objects(row)
+        ticket = Ticket(*entry).as_json()
+        all_entries.append(ticket)
+
+    return all_entries
 
 
-@app.route("/save", methods=["POST"])
-def save_ticket():
+@app.get("/getall/ordered")
+def get_all_tickets_ordered():
     """
-    Give me a new/edited ticket(as JSON), I will add/change it to the database.
-    JSON Format: {
-        "idstr": "uuid",
-        "title": "title",
-        "description": "description",
-        "repository": "repo link",
-        "difficulty": "difficulty",
-        "assignee": "assignee",
-        "role": "role"
-    }
-    When making a new ticket, leave the "uuid" field as an empty string.
+    Returns a list of all ticket entries in order of time of creation.
+    """
 
+    entries = get_all_tickets()
+    sorted_entries = sorted(
+        entries, key=lambda entry: datetime.fromisoformat(entry["created_at"])
+    )
+
+    return sorted_entries
+
+
+@app.get("/get<idstr>")
+def get_one(idstr):
+    """
+    Returns the ticket entry with the provided UUID.
+    """
+
+    entry = get_entry(idstr)
+    if not entry:
+        return (f"Ticket ID {idstr} could not be found.", 404)
+
+    ticket = strings_to_objects(entry)
+
+    return Ticket(*ticket).as_json()
+
+
+@app.post("/add")
+def add_ticket():
+    """
+    Adds a ticket entry to the database.
     """
 
     body: dict = request.get_json()
-    idstr = body["idstr"]
-    status = "add"
+    ticket = objects_to_strings(body)
+    insert_entry(ticket)
 
-    with open("database.json", "r") as f:
-        db: dict = json.load(f)
-
-    if idstr:
-        if idstr in db:
-            status = "updat"
-        else:
-            return (
-                f"Ticket id {idstr} is not found in the database. Do you want to create a new ticket?",
-                200,
-            )
-    else:
-        idstr = str(uuid4())
-
-    db.update(
-        {
-            idstr: {
-                "contents": {
-                    "title": body["title"],
-                    "description": body["description"],
-                    "repository": body["repo"],
-                    "difficulty": body["difficulty"],
-                    "assignee": body["assignee"],
-                    "role": body["role"],
-                },
-                "last updated": str(datetime.now()),
-            }
-        }
-    )
-    with open("database.json", "w") as f:
-        json.dump(db, f, indent=4)
-    return (f"Ticket id {idstr} has been {status}ed.", 200)
+    return "Ticket has been added."
 
 
-@app.route("/get<idstr>", methods=["GET"])
-def get_one(idstr):
+@app.post("/edit<idstr>")
+def edit_ticket(idstr: str):
     """
-    Give me a uuid, I will return the corresponding ticket JSON.
+    Edits a ticket entry in the database.
     """
-    with open("database.json", "r") as f:
-        db: dict = json.load(f)
-    ticket: dict | None = db.get(idstr)
 
-    return (ticket, 200) if ticket else ("Ticket not found", 200)
+    body: dict = request.get_json()
+    ticket = objects_to_strings(body)
+    edit_entry(ticket, idstr)
+
+    return f"Ticket ID {idstr} has been updated."
+
+
+def objects_to_strings(ticket: dict) -> dict:
+    """Serialize objects in the ticket to strings."""
+
+    ticket = ticket.copy()
+    ticket["tags"] = json.dumps(ticket["tags"])
+    ticket["contents"] = json.dumps(ticket["contents"])
+
+    return ticket
+
+
+def strings_to_objects(query_row: tuple) -> tuple:
+    """Deserialize strings in the query to objects."""
+
+    query_row = list(query_row)
+    query_row[1] = json.loads(query_row[1])
+    query_row[2] = json.loads(query_row[2])
+
+    return tuple(query_row)

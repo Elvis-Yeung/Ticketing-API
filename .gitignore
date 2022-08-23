@@ -3,3 +3,4 @@ test_app.py
 *.txt
 *.csv
 *.json
+*.db
