@@ -1,7 +1,7 @@
 from flask import Flask, request
-from model import Ticket
 from datetime import datetime
 from db_manip import *
+from dataclasses import dataclass
 import json
 
 
@@ -33,13 +33,15 @@ def get_all_tickets():
     Returns a list of all ticket entries.
     """
 
-    all_entries = []
-    for row in get_all_entries():
-        entry = strings_to_objects(row)
-        ticket = Ticket(*entry).as_json()
-        all_entries.append(ticket)
+    # all_entries = []
+    # for row in get_all_entries():
+    #     entry = stringify_query(row)
+    #     ticket = Ticket(*entry).as_json()
+    #     all_entries.append(ticket)
+    all_entries = [Ticket(*stringify_query(row)).as_json() for row in get_all_entries()]
 
     return all_entries
+
 
 
 @app.get("/getall/ordered")
@@ -66,7 +68,7 @@ def get_one(idstr):
     if not entry:
         return (f"Ticket ID {idstr} could not be found.", 404)
 
-    ticket = strings_to_objects(entry)
+    ticket = stringify_query(entry)
 
     return Ticket(*ticket).as_json()
 
@@ -78,7 +80,7 @@ def add_ticket():
     """
 
     body: dict = request.get_json()
-    ticket = objects_to_strings(body)
+    ticket = objectify_query(body)
     insert_entry(ticket)
 
     return "Ticket has been added."
@@ -91,13 +93,13 @@ def edit_ticket(idstr: str):
     """
 
     body: dict = request.get_json()
-    ticket = objects_to_strings(body)
+    ticket = objectify_query(body)
     edit_entry(ticket, idstr)
 
     return f"Ticket ID {idstr} has been updated."
 
 
-def objects_to_strings(ticket: dict) -> dict:
+def objectify_query(ticket: dict) -> dict:
     """Serialize objects in the ticket to strings."""
 
     ticket = ticket.copy()
@@ -107,7 +109,7 @@ def objects_to_strings(ticket: dict) -> dict:
     return ticket
 
 
-def strings_to_objects(query_row: tuple) -> tuple:
+def stringify_query(query_row: tuple) -> tuple:
     """Deserialize strings in the query to objects."""
 
     query_row = list(query_row)
@@ -115,3 +117,21 @@ def strings_to_objects(query_row: tuple) -> tuple:
     query_row[2] = json.loads(query_row[2])
 
     return tuple(query_row)
+
+
+@dataclass
+class Ticket:
+    id: str
+    tags: list[str]
+    contents: dict[str, str]
+    last_modified: str
+    created_at: str
+
+    def as_json(self):
+        return {
+            "uuid": self.id,
+            "tags": self.tags,
+            "contents": self.contents,
+            "last_modified": self.last_modified,
+            "created_at": self.created_at,
+        }
