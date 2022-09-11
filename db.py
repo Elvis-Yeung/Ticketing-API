@@ -112,8 +112,8 @@ def get_ticket(cur, id: uuid.UUID) -> dict:
 
 @get_conn_cursor
 def yeet_ticket(cur, id: uuid.UUID):
-    cur.execute('DELETE FROM tickets WHERE id = %s;', (id,))
     cur.execute('DELETE FROM ticket_role WHERE ticket_id = %s;', (id,))
+    cur.execute('DELETE FROM tickets WHERE id = %s;', (id,))
 
 
 @get_conn_cursor
@@ -139,4 +139,3 @@ def test2(cur):
 if __name__ == "__main__":
     ...
     # reset_db()
-    # print(get_ticket(uuid.UUID('c3da3f10-36f2-4c01-a151-6a19c4243d1f')))
