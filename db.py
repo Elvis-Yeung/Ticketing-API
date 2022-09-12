@@ -77,26 +77,13 @@ def add_ticket(cur, ticket: dict):
     for role in roles:
         cur.execute("INSERT INTO ticket_role VALUES (%s, %s);", (ticket['id'], role))
 
-if False:
-    add_ticket({
-    "id": uuid.uuid4(),
-    "title": "Easiest task ever",
-    "description": "Do stuff",
-    "repository": "N/A",
-    "skills": "N/A",
-    "difficulty": "Dark Souls No Hit",
-    "assignee": "idy",
-    "roles": ["frontend", "backend"],
-    "last_modified": datetime.datetime.fromisoformat("2022-08-23 10:04:09.104992"),
-    "created_at": datetime.datetime.fromisoformat("2022-08-20 10:04:09.104992")
-}
-)
 
 @get_conn_cursor
 def get_ticket(cur, id: uuid.UUID) -> dict:
     cur.execute('SELECT * FROM tickets WHERE id = %s;', (id,))
-    columns = [desc[0] for desc in cur.description]
     values = cur.fetchone()
+    # explanation for desc[0] https://www.psycopg.org/docs/cursor.html?highlight=cursor#cursor
+    columns = [desc[0] for desc in cur.description]
     ticket = dict(zip(columns, values))
 
     cur.execute('''
@@ -105,15 +92,17 @@ def get_ticket(cur, id: uuid.UUID) -> dict:
             INNER JOIN ticket_role 
             ON ticket_role.role_name = roles.name
         WHERE ticket_role.ticket_id = %s;''', (id,))
-    roles = cur.fetchall()
+    roles: list[tuple] = cur.fetchall()
     ticket['roles'] = [role[0] for role in roles]
 
+    # let roles: Vec<String> = roles.iter().map(|role| role[0]).collect()
     return ticket
+
 
 @get_conn_cursor
 def yeet_ticket(cur, id: uuid.UUID):
-    cur.execute('DELETE FROM ticket_role WHERE ticket_id = %s;', (id,))
-    cur.execute('DELETE FROM tickets WHERE id = %s;', (id,))
+    cur.execute('DELETE * FROM ticket_role WHERE ticket_id = %s;', (id,))
+    cur.execute('DELETE * FROM tickets WHERE id = %s;', (id,))
 
 
 @get_conn_cursor
@@ -121,19 +110,16 @@ def add_role(cur, name: str, desc: str):
     cur.execute('INSERT INTO roles VALUES (%s, %s);', (name, desc))
 
 
+@get_conn_cursor
+def yeet_role(cur, name: str):
+    cur.execute('DELETE * FROM ticket_role WHERE role_name = %s;', (name))
+    cur.execute('DELETE * FROM role WHERE name = %s;', (name))
+
+
 def add_cur_roles():
     add_role('frontend', '')
     add_role('backend', '')
 
-
-@get_conn_cursor
-def test1(cur, name):
-    cur.execute("INSERT INTO roles VALUES (%s, %s);", (name, 'it is a role'))
-
-@get_conn_cursor
-def test2(cur):
-    cur.execute("""SELECT * FROM roles;""")
-    print(cur.fetchall())
 
 
 if __name__ == "__main__":
